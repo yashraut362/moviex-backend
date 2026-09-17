@@ -1,31 +1,41 @@
 import { Router } from "express";
-import { answerFor, type AskEvent } from "../ask.js";
+import type { AskStream, ChatTurn } from "../recommender.js";
 
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-export function askRouter({ delayMs = 40 }: { delayMs?: number } = {}) {
+export function askRouter(ask: AskStream) {
   const router = Router();
 
   router.post("/", async (req, res) => {
-    const question = (req.body as { question?: unknown } | undefined)?.question;
+    const question = req.body?.question;
     if (typeof question !== "string" || question.trim() === "") {
       res.status(400).json({ error: "missing question" });
       return;
     }
 
+    // Keep only well-formed turns from the history the frontend sends.
+    const history: ChatTurn[] = [];
+    if (Array.isArray(req.body.history)) {
+      for (const turn of req.body.history) {
+        if ((turn?.role === "user" || turn?.role === "assistant") && typeof turn.text === "string") {
+          history.push({ role: turn.role, text: turn.text });
+        }
+      }
+    }
+
+    // Stream newline-delimited JSON events to the client.
     res.setHeader("Content-Type", "application/x-ndjson");
     res.setHeader("Cache-Control", "no-cache");
     res.flushHeaders();
-    const write = (event: AskEvent) => res.write(JSON.stringify(event) + "\n");
 
-    const answer = answerFor(question);
-    const words = answer.text.split(" ");
-    for (let i = 0; i < words.length; i++) {
-      write({ type: "text", text: (i === 0 ? "" : " ") + words[i] });
-      if (delayMs > 0) await sleep(delayMs);
+    try {
+      for await (const event of ask(question, history)) {
+        res.write(JSON.stringify(event) + "\n");
+      }
+    } catch (err) {
+      console.error("ask failed:", err instanceof Error ? err.message : err);
+      res.write(JSON.stringify({ type: "text", text: "Something went wrong while looking that up. Try again in a moment." }) + "\n");
+      res.write(JSON.stringify({ type: "picks", picks: [] }) + "\n");
+      res.write(JSON.stringify({ type: "done" }) + "\n");
     }
-    write({ type: "picks", picks: answer.picks });
-    write({ type: "done" });
     res.end();
   });
 

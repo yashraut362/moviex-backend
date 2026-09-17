@@ -53,3 +53,17 @@ export function answerFor(question: string): CannedAnswer {
   const rule = CANNED.find((c) => c.match.test(question)) ?? CANNED[CANNED.length - 1];
   return { text: rule.text, picks: rule.picks };
 }
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Streams a canned answer word by word. Used when semantic search is not configured.
+export async function* cannedStream(question: string, delayMs = 40): AsyncGenerator<AskEvent> {
+  const answer = answerFor(question);
+  const words = answer.text.split(" ");
+  for (let i = 0; i < words.length; i++) {
+    yield { type: "text", text: (i === 0 ? "" : " ") + words[i] };
+    if (delayMs > 0) await sleep(delayMs);
+  }
+  yield { type: "picks", picks: answer.picks };
+  yield { type: "done" };
+}

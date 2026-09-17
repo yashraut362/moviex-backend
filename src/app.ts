@@ -4,14 +4,15 @@ import cors from "cors";
 import type { TmdbClient } from "./tmdb.js";
 import { moviesRouter } from "./routes/movies.js";
 import { askRouter } from "./routes/ask.js";
+import type { AskStream } from "./recommender.js";
 
 export type AppOptions = {
   tmdb: TmdbClient;
+  ask: AskStream;
   clientOrigin: string;
-  askDelayMs?: number;
 };
 
-export function createApp({ tmdb, clientOrigin, askDelayMs }: AppOptions) {
+export function createApp({ tmdb, ask, clientOrigin }: AppOptions) {
   const app = express();
   app.use(cors({ origin: clientOrigin }));
   app.use(express.json());
@@ -19,6 +20,6 @@ export function createApp({ tmdb, clientOrigin, askDelayMs }: AppOptions) {
     res.json({ ok: true });
   });
   app.use("/api/movies", moviesRouter(tmdb));
-  app.use("/api/ask", askRouter({ delayMs: askDelayMs }));
+  app.use("/api/ask", askRouter(ask));
   return app;
 }
