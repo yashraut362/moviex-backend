@@ -5,6 +5,8 @@ import type { TmdbClient } from "./tmdb.js";
 import { moviesRouter } from "./routes/movies.js";
 import { askRouter } from "./routes/ask.js";
 import { bookingsRouter } from "./routes/bookings.js";
+import { conciergeRouter } from "./concierge.js";
+import { shows } from "./shows.js";
 import type { AskFn } from "./recommender.js";
 
 export type AppOptions = {
@@ -20,8 +22,12 @@ export function createApp({ tmdb, ask, clientOrigin }: AppOptions) {
   app.get("/health", (_req, res) => {
     res.json({ ok: true });
   });
+  app.get("/api/shows", (_req, res) => {
+    res.json(shows());
+  });
   app.use("/api/movies", moviesRouter(tmdb));
   app.use("/api/ask", askRouter(ask));
   app.use("/api/bookings", bookingsRouter());
+  app.use("/api/concierge", conciergeRouter(tmdb));
   return app;
 }

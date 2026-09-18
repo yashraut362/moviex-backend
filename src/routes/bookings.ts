@@ -25,9 +25,17 @@ function parseSeats(value: unknown): string[] | null {
   return [...new Set(value as string[])];
 }
 
-async function takenSeats(key: ShowKey): Promise<string[]> {
+export async function takenSeats(key: ShowKey): Promise<string[]> {
   const bookings = await BookingModel.find(key, { seats: 1 }).lean();
   return [...new Set(bookings.flatMap((b) => b.seats))];
+}
+
+// Check-then-insert. A same-instant race can double book; acceptable here.
+export async function bookSeats(key: ShowKey, seats: string[]) {
+  const taken = await takenSeats(key);
+  const conflict = seats.filter((s) => taken.includes(s));
+  if (conflict.length > 0) return { conflict };
+  return { booking: await BookingModel.create({ ...key, seats }) };
 }
 
 export function bookingsRouter() {
@@ -55,16 +63,12 @@ export function bookingsRouter() {
       return;
     }
 
-    // Check-then-insert. A same-instant race can double book; acceptable here.
-    const taken = await takenSeats(key);
-    const conflict = seats.filter((s) => taken.includes(s));
-    if (conflict.length > 0) {
-      res.status(409).json({ error: "seats taken", seats: conflict });
+    const result = await bookSeats(key, seats);
+    if (result.conflict) {
+      res.status(409).json({ error: "seats taken", seats: result.conflict });
       return;
     }
-
-    const booking = await BookingModel.create({ ...key, seats });
-    res.status(201).json(booking);
+    res.status(201).json(result.booking);
   });
 
   return router;
