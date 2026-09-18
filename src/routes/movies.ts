@@ -13,6 +13,8 @@ export function moviesRouter(tmdb: TmdbClient) {
 
   router.get("/popular", (_req, res) => send(res, tmdb("/movie/popular")));
 
+  router.get("/now-playing", (_req, res) => send(res, tmdb("/movie/now_playing")));
+
   router.get("/search", (req, res) => {
     const q = req.query.q;
     if (typeof q !== "string" || q.trim() === "") {
