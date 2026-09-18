@@ -36,7 +36,7 @@ Environment variables:
 | `GET /api/movies/:id` | TMDB movie details |
 | `GET /api/movies/:id/videos` | TMDB videos (trailers) |
 | `POST /api/ask` | chat recommendations, returns `{ text, picks: [{ tmdbId, why }] }` |
-| `POST /api/concierge` | booking concierge (OpenAI Agents SDK), body `{ message, history }`, returns `{ text }`; needs `OPENAI_API_KEY` |
+| `POST /api/concierge` | booking concierge (OpenAI Agents SDK), body `{ message, history }`, returns `{ text, booking }` where `booking` is `{ tmdbId, title, venue, time, seats }` or null; needs `OPENAI_API_KEY` |
 | `GET /api/shows` | venues, showtimes, seat layout and today's date, `{ venues, showtimes, rows, seatsPerRow, date }` |
 | `GET /api/bookings/taken?tmdbId=&venue=&date=&time=` | seats already booked for a show, `{ seats: string[] }` |
 | `POST /api/bookings` | book seats, body `{ tmdbId, venue, date, time, seats }`; `409 { error, seats }` if any seat is taken |

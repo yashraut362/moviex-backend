@@ -13,9 +13,18 @@ Seats are named row letter plus number, like C4. Corner seats are the first and 
 When asked to book: pick the movie, venue, time and seats from the request, using sensible defaults (one seat, the latest showtime for "night", corner seats when asked), check is_seat_taken, then state one exact plan (movie, venue, time, seats) and ask the user to confirm it. Choose the seats yourself; do not ask the user to pick.
 Only call book_seats after the user confirms the plan in their reply; never book without that.
 Tool results are not remembered between messages: when the user confirms, call list_now_playing again and use its tmdbId.
-Reply in two or three plain sentences, no lists or markdown. After booking, say exactly what was booked.`;
+Always call is_seat_taken right before book_seats, passing every candidate seat for the requested row or area in one call. If a planned seat is taken, pick the nearest free seats that still match the request, book those, and mention the change. Only report a failure when no matching seat is free.
+Reply in two or three plain sentences, no lists or markdown. After booking, say exactly what was booked.
+Set booking to the booking made by book_seats in this reply, otherwise null.`;
 
 const MAX_TURNS = 8;
+
+const Output = z.object({
+  text: z.string(),
+  booking: z
+    .object({ tmdbId: z.number(), title: z.string(), venue: z.string(), time: z.string(), seats: z.array(z.string()) })
+    .nullable(),
+});
 
 const GENRES: Record<number, string> = {
   28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy", 80: "Crime", 99: "Documentary",
@@ -89,6 +98,7 @@ export function conciergeRouter(tmdb: TmdbClient) {
     instructions: INSTRUCTIONS,
     model: config.openai.chatModel,
     tools: [listNowPlaying, listShows, isSeatTaken, bookSeatsTool],
+    outputType: Output,
   });
 
   const router = Router();
@@ -102,7 +112,7 @@ export function conciergeRouter(tmdb: TmdbClient) {
     ];
     try {
       const result = await run(agent, input, { maxTurns: MAX_TURNS });
-      res.json({ text: result.finalOutput ?? "" });
+      res.json(result.finalOutput ?? { text: "", booking: null });
     } catch (err) {
       console.error("concierge failed:", err instanceof Error ? err.message : err);
       res.status(500).json({ error: "concierge failed" });
