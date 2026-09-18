@@ -33,15 +33,15 @@ Environment variables:
 | `GET /api/movies/search?q=` | TMDB movie search |
 | `GET /api/movies/:id` | TMDB movie details |
 | `GET /api/movies/:id/videos` | TMDB videos (trailers) |
-| `POST /api/ask` | chat recommendations, streamed as ndjson `{text}` → `{picks}` → `{done}` |
+| `POST /api/ask` | chat recommendations, returns `{ text, picks: [{ tmdbId, why }] }` |
 
 TMDB responses pass through unchanged. `/api/ask` takes `{"question": string, "history": [{"role","text"}]}`.
 
 ## How `/api/ask` works
 
 1. `src/retrieval.ts` turns the question into a vector with OpenAI and asks Pinecone for the closest movies.
-2. `src/recommender.ts` gives those movies to the OpenAI chat model. The model answers with a JSON line of picks (`{tmdbId, why}`) followed by a short paragraph.
-3. The paragraph streams to the client as `text` events, then the picks go out as one `picks` event, then `done`. If the JSON line is broken, the picks fall back to the search results.
+2. `src/recommender.ts` gives those movies to the OpenAI chat model and asks for a JSON object with an `answer` paragraph and up to four `picks` (`{tmdbId, why}`), restricted to the retrieved candidates.
+3. The route returns that as `{ text, picks }`. If the model's JSON is unusable, the picks fall back to the search results.
 
 If `PINECONE_API_KEY`, `PINECONE_INDEX`, or `OPENAI_API_KEY` is missing, the route uses the canned answers in `src/ask.ts` instead, so local dev works without keys.
 

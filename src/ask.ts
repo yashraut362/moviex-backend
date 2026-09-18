@@ -1,17 +1,9 @@
-// Canned answers for POST /api/ask. This is the one file the real
-// recommender (retrieve → prompt → generate) replaces later. Keep
-// answerFor()'s signature and the AskEvent shape stable.
+// Canned answers used when the Pinecone/OpenAI keys are not configured.
 
 export type Pick = { tmdbId: number; why: string };
+export type Answer = { text: string; picks: Pick[] };
 
-export type AskEvent =
-  | { type: "text"; text: string }
-  | { type: "picks"; picks: Pick[] }
-  | { type: "done" };
-
-export type CannedAnswer = { text: string; picks: Pick[] };
-
-type Rule = CannedAnswer & { match: RegExp };
+type Rule = Answer & { match: RegExp };
 
 const CANNED: Rule[] = [
   {
@@ -49,21 +41,7 @@ const CANNED: Rule[] = [
   },
 ];
 
-export function answerFor(question: string): CannedAnswer {
+export function answerFor(question: string): Answer {
   const rule = CANNED.find((c) => c.match.test(question)) ?? CANNED[CANNED.length - 1];
   return { text: rule.text, picks: rule.picks };
-}
-
-const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-// Streams a canned answer word by word. Used when semantic search is not configured.
-export async function* cannedStream(question: string, delayMs = 40): AsyncGenerator<AskEvent> {
-  const answer = answerFor(question);
-  const words = answer.text.split(" ");
-  for (let i = 0; i < words.length; i++) {
-    yield { type: "text", text: (i === 0 ? "" : " ") + words[i] };
-    if (delayMs > 0) await sleep(delayMs);
-  }
-  yield { type: "picks", picks: answer.picks };
-  yield { type: "done" };
 }

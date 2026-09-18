@@ -1,8 +1,8 @@
 import { config, semanticSearchConfigured } from "./config.js";
 import { createApp } from "./app.js";
 import { createTmdbClient } from "./tmdb.js";
-import { cannedStream } from "./ask.js";
-import type { AskStream } from "./recommender.js";
+import { answerFor } from "./ask.js";
+import type { AskFn } from "./recommender.js";
 
 if (!config.tmdbApiKey) {
   console.warn("TMDB_API_KEY is not set; movie routes will fail upstream.");
@@ -10,13 +10,13 @@ if (!config.tmdbApiKey) {
 
 // Use real semantic search when the Pinecone and OpenAI keys are present,
 // otherwise fall back to canned answers so local dev still works.
-let ask: AskStream;
+let ask: AskFn;
 if (semanticSearchConfigured()) {
   const { askWithSearch } = await import("./recommender.js");
   ask = askWithSearch;
   console.log(`/api/ask: Pinecone "${config.pinecone.index}"/${config.pinecone.namespace || "__default__"} + ${config.openai.chatModel}`);
 } else {
-  ask = (question) => cannedStream(question);
+  ask = async (question) => answerFor(question);
   console.warn("/api/ask: PINECONE_* or OPENAI_API_KEY missing; using canned answers.");
 }
 

@@ -1,9 +1,10 @@
 import { Router } from "express";
-import type { AskStream, ChatTurn } from "../recommender.js";
+import type { AskFn, ChatTurn } from "../recommender.js";
 
-export function askRouter(ask: AskStream) {
+export function askRouter(ask: AskFn) {
   const router = Router();
 
+  // POST /api/ask  { question, history } -> { text, picks }
   router.post("/", async (req, res) => {
     const question = req.body?.question;
     if (typeof question !== "string" || question.trim() === "") {
@@ -21,22 +22,12 @@ export function askRouter(ask: AskStream) {
       }
     }
 
-    // Stream newline-delimited JSON events to the client.
-    res.setHeader("Content-Type", "application/x-ndjson");
-    res.setHeader("Cache-Control", "no-cache");
-    res.flushHeaders();
-
     try {
-      for await (const event of ask(question, history)) {
-        res.write(JSON.stringify(event) + "\n");
-      }
+      res.json(await ask(question, history));
     } catch (err) {
       console.error("ask failed:", err instanceof Error ? err.message : err);
-      res.write(JSON.stringify({ type: "text", text: "Something went wrong while looking that up. Try again in a moment." }) + "\n");
-      res.write(JSON.stringify({ type: "picks", picks: [] }) + "\n");
-      res.write(JSON.stringify({ type: "done" }) + "\n");
+      res.status(500).json({ error: "recommendation failed" });
     }
-    res.end();
   });
 
   return router;

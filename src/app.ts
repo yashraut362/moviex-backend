@@ -4,11 +4,11 @@ import cors from "cors";
 import type { TmdbClient } from "./tmdb.js";
 import { moviesRouter } from "./routes/movies.js";
 import { askRouter } from "./routes/ask.js";
-import type { AskStream } from "./recommender.js";
+import type { AskFn } from "./recommender.js";
 
 export type AppOptions = {
   tmdb: TmdbClient;
-  ask: AskStream;
+  ask: AskFn;
   clientOrigin: string;
 };
 
