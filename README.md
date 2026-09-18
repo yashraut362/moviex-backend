@@ -40,8 +40,8 @@ TMDB responses pass through unchanged. `/api/ask` takes `{"question": string, "h
 ## How `/api/ask` works
 
 1. `src/retrieval.ts` turns the question into a vector with OpenAI and asks Pinecone for the closest movies.
-2. `src/recommender.ts` gives those movies to the OpenAI chat model and asks for a JSON object with an `answer` paragraph and up to four `picks` (`{tmdbId, why}`), restricted to the retrieved candidates.
-3. The route returns that as `{ text, picks }`. If the model's JSON is unusable, the picks fall back to the search results.
+2. `src/recommender.ts` gives those movies to the OpenAI chat model with a strict JSON schema attached to the call. The schema fixes the response shape (`text` plus up to four `picks` of `{tmdbId, why}`) and lists the retrieved ids as the only allowed `tmdbId` values, so the model cannot invent a film.
+3. The route returns the parsed object as `{ text, picks }`.
 
 If `PINECONE_API_KEY`, `PINECONE_INDEX`, or `OPENAI_API_KEY` is missing, the route uses the canned answers in `src/ask.ts` instead, so local dev works without keys.
 
