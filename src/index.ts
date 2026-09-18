@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { config, semanticSearchConfigured } from "./config.js";
 import { createApp } from "./app.js";
 import { createTmdbClient } from "./tmdb.js";
@@ -18,6 +19,15 @@ if (semanticSearchConfigured()) {
 } else {
   ask = async (question) => answerFor(question);
   console.warn("/api/ask: PINECONE_* or OPENAI_API_KEY missing; using canned answers.");
+}
+
+// Bookings live in MongoDB; the server does not start without it.
+try {
+  await mongoose.connect(config.mongodbUri, { serverSelectionTimeoutMS: 5000 });
+  console.log(`/api/bookings: MongoDB "${mongoose.connection.name}"`);
+} catch (error) {
+  console.error(`Could not connect to MongoDB (MONGODB_URI): ${(error as Error).message}`);
+  process.exit(1);
 }
 
 const app = createApp({

@@ -9,6 +9,7 @@ export const config = {
   port: Number(process.env.PORT ?? 4000),
   clientOrigin: process.env.CLIENT_ORIGIN ?? "http://localhost:3000",
   tmdbApiKey: process.env.TMDB_API_KEY ?? "",
+  mongodbUri: process.env.MONGODB_URI ?? "mongodb://127.0.0.1:27017/moviex",
   pinecone: {
     apiKey: process.env.PINECONE_API_KEY ?? "",
     index: process.env.PINECONE_INDEX ?? "",

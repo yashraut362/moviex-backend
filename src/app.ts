@@ -4,6 +4,7 @@ import cors from "cors";
 import type { TmdbClient } from "./tmdb.js";
 import { moviesRouter } from "./routes/movies.js";
 import { askRouter } from "./routes/ask.js";
+import { bookingsRouter } from "./routes/bookings.js";
 import type { AskFn } from "./recommender.js";
 
 export type AppOptions = {
@@ -21,5 +22,6 @@ export function createApp({ tmdb, ask, clientOrigin }: AppOptions) {
   });
   app.use("/api/movies", moviesRouter(tmdb));
   app.use("/api/ask", askRouter(ask));
+  app.use("/api/bookings", bookingsRouter());
   return app;
 }
